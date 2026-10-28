@@ -19,7 +19,7 @@ generator client {
 datasource db {
   // Default: sqlite untuk dev lokal cepat.
   // Untuk produksi (Vercel + Supabase), ganti ke "postgresql".
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
