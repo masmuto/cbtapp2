@@ -147,7 +147,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-              onClick={() => signOut({ callbackUrl: "/" })}
+              onClick={async () => {
+                // Gunakan redirect:false agar NextAuth tidak membawa user ke URL absolute
+                // (localhost:3000), yang tidak bisa diakses dari preview link.
+                // Setelah signOut di client, reload halaman untuk reset SPA state.
+                await signOut({ redirect: false });
+                window.location.reload();
+              }}
               title="Keluar"
             >
               <LogOut className="w-4 h-4" />
