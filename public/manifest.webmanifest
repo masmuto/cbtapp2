@@ -1,0 +1,26 @@
+{
+  "name": "CBT Sekolah",
+  "short_name": "CBT Sekolah",
+  "description": "Platform Computer Based Test online untuk semua jenjang pendidikan Indonesia.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f2540",
+  "theme_color": "#0f2540",
+  "lang": "id",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/?view=dashboard"
+    }
+  ]
+}

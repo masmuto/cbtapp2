@@ -1,0 +1,422 @@
+// CBT Sekolah — Prisma Schema (multi-tenant, SQLite adapter)
+// Catatan: SQLite tidak mendukung enum asli → kami pakai String + validasi di lapisan aplikasi.
+// Semua entitas milik sekolah membawa kolom `schoolId` untuk isolasi multi-sekolah.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// 1. IDENTITAS CORE — sekolah, pengguna, keanggotaan
+// ============================================================================
+
+model School {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  name           String
+  level          String
+  address        String?
+  city           String?
+  province       String?
+  timezone       String   @default("Asia/Jakarta")
+  logoUrl        String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  memberships    SchoolMembership[]
+  academicYears  AcademicYear[]
+  classes        Class[]
+  subjects       Subject[]
+  questionBanks  QuestionBank[]
+  exams          Exam[]
+  auditLogs      AuditLog[]
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  username      String   @unique
+  passwordHash  String
+  fullName      String
+  phone         String?
+  avatarUrl     String?
+  isActive      Boolean  @default(true)
+  isSuperadmin  Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  memberships        SchoolMembership[]
+  questionBanks      QuestionBank[]
+  exams              Exam[]
+  examAssignments    ExamAssignment[]
+  proctoringRecords  ProctoringRecord[]
+  gradeRevisions     GradeRevision[]
+  auditLogs          AuditLog[]
+  homeroomClasses    Class[]
+  classSubjects      ClassSubject[]
+  studentEnrollments StudentEnrollment[]
+}
+
+model SchoolMembership {
+  id        String   @id @default(cuid())
+  userId    String
+  schoolId  String
+  role      String
+  status    String   @default("active")
+  joinedAt  DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, schoolId])
+  @@index([schoolId, role])
+}
+
+// ============================================================================
+// 2. AKADEMIK
+// ============================================================================
+
+model AcademicYear {
+  id         String   @id @default(cuid())
+  schoolId   String
+  name       String
+  semester   String
+  isActive   Boolean  @default(false)
+  startDate  DateTime?
+  endDate    DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  school  School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classes Class[]
+  exams   Exam[]
+
+  @@unique([schoolId, name, semester])
+}
+
+model Class {
+  id                String   @id @default(cuid())
+  schoolId          String
+  academicYearId    String
+  name              String
+  homeroomTeacherId String?
+  capacity          Int      @default(40)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  school       School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear   @relation(fields: [academicYearId], references: [id])
+  homeroom     User?          @relation(fields: [homeroomTeacherId], references: [id])
+  enrollments  StudentEnrollment[]
+  subjects      ClassSubject[]
+  assignments   ExamAssignment[]
+
+  @@unique([schoolId, academicYearId, name])
+  @@index([schoolId])
+}
+
+model StudentEnrollment {
+  id        String   @id @default(cuid())
+  classId   String
+  studentId String
+  nis       String?
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+
+  class    Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student  User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  attempts ExamAttempt[]
+
+  @@unique([classId, studentId])
+  @@index([studentId])
+}
+
+model Subject {
+  id          String   @id @default(cuid())
+  schoolId    String
+  code        String
+  name        String
+  level       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school         School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classSubjects  ClassSubject[]
+  questionBanks  QuestionBank[]
+  exams          Exam[]
+
+  @@unique([schoolId, code])
+}
+
+model ClassSubject {
+  id         String   @id @default(cuid())
+  classId    String
+  subjectId  String
+  teacherId  String
+  createdAt  DateTime @default(now())
+
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id])
+  teacher User    @relation(fields: [teacherId], references: [id])
+
+  @@unique([classId, subjectId])
+  @@index([teacherId])
+}
+
+// ============================================================================
+// 3. BANK SOAL
+// ============================================================================
+
+model QuestionBank {
+  id          String   @id @default(cuid())
+  schoolId    String
+  subjectId   String
+  ownerId     String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school    School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  subject   Subject    @relation(fields: [subjectId], references: [id])
+  owner     User       @relation(fields: [ownerId], references: [id])
+  questions Question[]
+
+  @@index([schoolId, subjectId])
+}
+
+model Question {
+  id              String   @id @default(cuid())
+  questionBankId  String
+  type            String
+  stem            String
+  imageUrl        String?
+  attachmentUrl   String?
+  explanation      String?
+  difficulty      String   @default("MEDIUM")
+  category        String?
+  tags            String?
+  points          Float    @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  questionBank   QuestionBank     @relation(fields: [questionBankId], references: [id], onDelete: Cascade)
+  options        QuestionOption[]
+  examQuestions  ExamQuestion[]
+  attemptAnswers AttemptAnswer[]
+
+  @@index([questionBankId])
+}
+
+model QuestionOption {
+  id          String   @id @default(cuid())
+  questionId  String
+  code        String
+  text        String
+  isCorrect   Boolean  @default(false) // ← KUNCI JAWABAN, TIDAK diekspos ke siswa
+  orderIndex  Int      @default(0)
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+}
+
+// ============================================================================
+// 4. UJIAN
+// ============================================================================
+
+model Exam {
+  id              String   @id @default(cuid())
+  schoolId        String
+  subjectId       String
+  ownerId         String
+  academicYearId  String?
+  title           String
+  description      String?
+  status          String   @default("draft")
+  startAt         DateTime?
+  endAt           DateTime?
+  durationMinutes Int      @default(60)
+  maxAttempts     Int      @default(1)
+  passingScore    Float    @default(70)
+  shuffleQuestions Boolean @default(true)
+  shuffleOptions  Boolean  @default(true)
+  allowBackNav    Boolean  @default(true)
+  allowAnswerChange Boolean @default(true)
+  showResultImmediately Boolean @default(false)
+  publishMode     String   @default("manual")
+  antiCheatingConfig String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  school       School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  subject      Subject        @relation(fields: [subjectId], references: [id])
+  owner        User           @relation(fields: [ownerId], references: [id])
+  academicYear AcademicYear?  @relation(fields: [academicYearId], references: [id])
+  examQuestions ExamQuestion[]
+  assignments   ExamAssignment[]
+  attempts      ExamAttempt[]
+
+  @@index([schoolId, status])
+}
+
+model ExamQuestion {
+  id          String  @id @default(cuid())
+  examId      String
+  questionId  String
+  orderIndex  Int     @default(0)
+  points      Float   @default(1)
+  snapshot    String?
+
+  exam     Question @relation(fields: [questionId], references: [id])
+  examRef  Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, questionId])
+  @@index([examId])
+}
+
+model ExamAssignment {
+  id          String   @id @default(cuid())
+  examId      String
+  classId     String
+  proctorId   String?
+  createdAt   DateTime @default(now())
+
+  exam    Exam   @relation(fields: [examId], references: [id], onDelete: Cascade)
+  class   Class  @relation(fields: [classId], references: [id])
+  proctor User?  @relation(fields: [proctorId], references: [id])
+
+  @@unique([examId, classId])
+  @@index([proctorId])
+}
+
+model ExamAttempt {
+  id           String    @id @default(cuid())
+  examId       String
+  enrollmentId String
+  status       String    @default("not_started")
+  attemptNo    Int       @default(1)
+  startedAt    DateTime?
+  submittedAt  DateTime?
+  gradedAt     DateTime?
+  publishedAt  DateTime?
+  serverEndsAt DateTime?
+  rawScore     Float?
+  finalScore   Float?
+  isPassed     Boolean?
+  clientIp     String?
+  userAgent    String?
+  incidentCount Int      @default(0)
+  reviewNote   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  exam        Exam                @relation(fields: [examId], references: [id], onDelete: Cascade)
+  enrollment  StudentEnrollment   @relation(fields: [enrollmentId], references: [id])
+  answers     AttemptAnswer[]
+  events      ExamEvent[]
+  proctoring  ProctoringRecord[]
+  gradeRevisions GradeRevision[]
+
+  @@unique([examId, enrollmentId, attemptNo])
+  @@index([enrollmentId, status])
+}
+
+model AttemptAnswer {
+  id              String   @id @default(cuid())
+  attemptId       String
+  questionId      String
+  selectedOptionCodes String?
+  textAnswer      String?
+  isCorrect       Boolean?
+  pointsAwarded   Float?
+  gradedAt        DateTime?
+  gradedBy        String?
+  teacherComment  String?
+  revision        Int      @default(0)
+  isSynced        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  attempt   ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question  Question    @relation(fields: [questionId], references: [id])
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+}
+
+model ExamEvent {
+  id          String   @id @default(cuid())
+  attemptId   String
+  type        String
+  severity    String   @default("info")
+  payload     String?
+  createdAt   DateTime @default(now())
+
+  attempt ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@index([attemptId, createdAt])
+}
+
+model ProctoringRecord {
+  id          String   @id @default(cuid())
+  attemptId   String
+  proctorId   String
+  type        String
+  note        String?
+  status      String   @default("open")
+  resolvedAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  attempt  ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  proctor  User         @relation(fields: [proctorId], references: [id])
+
+  @@index([attemptId, status])
+}
+
+// ============================================================================
+// 5. NILAI & PUBLIKASI
+// ============================================================================
+
+model GradeRevision {
+  id         String   @id @default(cuid())
+  attemptId  String
+  changedById String
+  oldScore   Float?
+  newScore   Float?
+  reason     String
+  createdAt  DateTime @default(now())
+
+  attempt   ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  changedBy User        @relation(fields: [changedById], references: [id])
+
+  @@index([attemptId])
+}
+
+// ============================================================================
+// 6. AUDIT LOG
+// ============================================================================
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  schoolId   String?
+  actorId    String?
+  action     String
+  targetType String?
+  targetId   String?
+  metadata   String?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  school  School? @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  actor   User?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([schoolId, createdAt])
+  @@index([actorId, createdAt])
+}

@@ -1,0 +1,6 @@
+type,stem,points,difficulty,category,optionA,optionB,optionC,optionD,correctAnswer
+MULTIPLE_CHOICE,Hasil dari 7 × 8 adalah ...? ,1,EASY,Operasi Hitung,54,56,58,64,B
+MULTIPLE_CHOICE,Ibu kota Indonesia adalah ...? ,1,EASY,Geografi,Bandung,Jakarta,Surabaya,Medan,B
+MULTIPLE_CHOICE,Berapakah hasil dari 144 / 12?,1,EASY,Operasi Hitung,10,11,12,13,C
+TRUE_FALSE,Air terdiri dari Hidrogen dan Oksigen.,1,EASY,Sains,Benar,Salah,,A
+SHORT_ANSWER,Berapakah akar kuadrat dari 81?,2,MEDIUM,Bilangan,,,,9

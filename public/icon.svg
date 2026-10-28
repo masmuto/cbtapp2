@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <rect width="192" height="192" rx="40" fill="#0f2540"/>
+  <path d="M96 36 L48 60 V100 C48 128 70 148 96 156 C122 148 144 128 144 100 V60 Z" fill="none" stroke="#22d3ee" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M76 96 L90 110 L116 84" fill="none" stroke="#22d3ee" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="96" y="178" text-anchor="middle" fill="#fff" font-family="Inter, sans-serif" font-size="14" font-weight="600">CBT Sekolah</text>
+</svg>
