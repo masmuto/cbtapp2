@@ -128,10 +128,10 @@ export function StudentsManager() {
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="Cari siswa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
             </div>
-            <Select value={filterClass} onValueChange={setFilterClass}>
+            <Select value={filterClass || "__all__"} onValueChange={(v) => setFilterClass(v === "__all__" ? "" : v)}>
               <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Semua kelas" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Semua kelas</SelectItem>
+                <SelectItem value="__all__">Semua kelas</SelectItem>
                 {classes.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>

@@ -166,10 +166,10 @@ export function ProctorMonitoring() {
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="Cari siswa atau ujian..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
             </div>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <Select value={filterStatus || "__all__"} onValueChange={(v) => setFilterStatus(v === "__all__" ? "" : v)}>
               <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Semua status" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Semua status</SelectItem>
+                <SelectItem value="__all__">Semua status</SelectItem>
                 <SelectItem value="in_progress">Sedang Berjalan</SelectItem>
                 <SelectItem value="submitted">Dikumpulkan</SelectItem>
                 <SelectItem value="graded">Dinilai</SelectItem>

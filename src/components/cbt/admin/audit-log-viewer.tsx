@@ -52,10 +52,10 @@ export function AuditLogViewer() {
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="Cari aktor atau aksi..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
             </div>
-            <Select value={actionFilter} onValueChange={setActionFilter}>
+            <Select value={actionFilter || "__all__"} onValueChange={(v) => setActionFilter(v === "__all__" ? "" : v)}>
               <SelectTrigger className="w-full sm:w-56"><SelectValue placeholder="Semua aksi" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Semua aksi</SelectItem>
+                <SelectItem value="__all__">Semua aksi</SelectItem>
                 {actions.map((a) => <SelectItem key={a} value={a}>{a.replace(/_/g, " ")}</SelectItem>)}
               </SelectContent>
             </Select>

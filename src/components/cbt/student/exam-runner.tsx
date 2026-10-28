@@ -133,38 +133,7 @@ export function ExamRunner({ examId }: { examId: string }) {
 
   useEffect(() => { fetchExam(); }, [fetchExam]);
 
-  // === TIMER (server-based) ===
-  const [remainingSec, setRemainingSec] = useState(0);
-  useEffect(() => {
-    if (!attempt?.serverEndsAt) return;
-    const update = () => {
-      const now = Date.now();
-      const ends = new Date(attempt.serverEndsAt!).getTime();
-      const diff = Math.floor((ends - now) / 1000);
-      setRemainingSec(Math.max(0, diff));
-      if (diff <= 0) {
-        // Auto-submit
-        handleSubmit(true);
-      }
-    };
-    update();
-    const t = setInterval(update, 1000);
-    return () => clearInterval(t);
-  }, [attempt?.serverEndsAt]);
-
-  // === HEARTBEAT ===
-  useEffect(() => {
-    if (!attempt || attempt.status !== "in_progress") return;
-    heartbeatRef.current = setInterval(async () => {
-      await apiFetch("/api/events", {
-        method: "POST",
-        body: JSON.stringify({ attemptId: attempt.id, type: "HEARTBEAT" }),
-      });
-    }, 30000);
-    return () => { if (heartbeatRef.current) clearInterval(heartbeatRef.current); };
-  }, [attempt?.id, attempt?.status]);
-
-  // === AUTOSAVE ===
+  // === AUTOSAVE (declared early so submit can use it) ===
   const syncAnswer = useCallback(async (questionId: string) => {
     if (!attempt || attempt.status !== "in_progress") return;
     const ans = answers[questionId];
@@ -195,7 +164,61 @@ export function ExamRunner({ examId }: { examId: string }) {
       setSyncStatus("error");
       pendingSyncRef.current.add(questionId);
     }
-  }, [attempt, answers]);
+  }, [attempt, answers, fetchExam]);
+
+  // === SUBMIT (declared early so timer can call it) ===
+  const handleSubmit = useCallback(async (auto = false) => {
+    if (!attempt) return;
+    if (!auto) setShowSubmitDialog(false);
+    setSubmitting(true);
+    // Sync semua pending answers first
+    if (pendingSyncRef.current.size > 0) {
+      await Promise.all([...pendingSyncRef.current].map((qid) => syncAnswer(qid)));
+    }
+    const r = await apiFetch(`/api/exams/${examId}/attempts`, {
+      method: "POST",
+      body: JSON.stringify({ attemptId: attempt.id, confirm: true }),
+    });
+    setSubmitting(false);
+    if (r.ok) {
+      toast.success(auto ? "Waktu ujian berakhir. Jawaban otomatis dikumpulkan." : "Ujian berhasil dikumpulkan.");
+      await fetchExam();
+      setShowResult(true);
+    } else {
+      toast.error(r.error || "Gagal mengumpulkan ujian.");
+    }
+  }, [attempt, examId, syncAnswer, fetchExam]);
+
+  // === TIMER (server-based) ===
+  const [remainingSec, setRemainingSec] = useState(0);
+  useEffect(() => {
+    if (!attempt?.serverEndsAt) return;
+    const update = () => {
+      const now = Date.now();
+      const ends = new Date(attempt.serverEndsAt!).getTime();
+      const diff = Math.floor((ends - now) / 1000);
+      setRemainingSec(Math.max(0, diff));
+      if (diff <= 0) {
+        // Auto-submit
+        handleSubmit(true);
+      }
+    };
+    update();
+    const t = setInterval(update, 1000);
+    return () => clearInterval(t);
+  }, [attempt?.serverEndsAt, handleSubmit]);
+
+  // === HEARTBEAT ===
+  useEffect(() => {
+    if (!attempt || attempt.status !== "in_progress") return;
+    heartbeatRef.current = setInterval(async () => {
+      await apiFetch("/api/events", {
+        method: "POST",
+        body: JSON.stringify({ attemptId: attempt.id, type: "HEARTBEAT" }),
+      });
+    }, 30000);
+    return () => { if (heartbeatRef.current) clearInterval(heartbeatRef.current); };
+  }, [attempt?.id, attempt?.status]);
 
   // Sync pending queue periodically
   useEffect(() => {
@@ -320,29 +343,6 @@ export function ExamRunner({ examId }: { examId: string }) {
       clearTimeout(debounceSync.current.get(questionId)!);
     }
     debounceSync.current.set(questionId, setTimeout(() => syncAnswer(questionId), 1500));
-  };
-
-  // === SUBMIT ===
-  const handleSubmit = async (auto = false) => {
-    if (!attempt) return;
-    if (!auto) setShowSubmitDialog(false);
-    setSubmitting(true);
-    // Sync semua pending answers first
-    if (pendingSyncRef.current.size > 0) {
-      await Promise.all([...pendingSyncRef.current].map((qid) => syncAnswer(qid)));
-    }
-    const r = await apiFetch(`/api/exams/${examId}/attempts`, {
-      method: "POST",
-      body: JSON.stringify({ attemptId: attempt.id, confirm: true }),
-    });
-    setSubmitting(false);
-    if (r.ok) {
-      toast.success(auto ? "Waktu ujian berakhir. Jawaban otomatis dikumpulkan." : "Ujian berhasil dikumpulkan.");
-      await fetchExam();
-      setShowResult(true);
-    } else {
-      toast.error(r.error || "Gagal mengumpulkan ujian.");
-    }
   };
 
   // === EXIT FULLSCREEN HANDLER ===
