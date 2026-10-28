@@ -1,0 +1,64 @@
+TEMPLATE IMPORT SOAL FORMAT WORD (.docx)
+========================================
+
+FORMAT:
+- Setiap soal dipisahkan oleh BARIS KOSONG
+- Baris pertama tiap soal: [TYPE] diikuti pertanyaan
+- Opsi ditulis: A. teks / B. teks / C. teks / D. teks
+- Metadata: ANSWER:, POINTS:, DIFFICULTY:, CATEGORY:, EXPLANATION:
+- Tipe yang didukung: MULTIPLE_CHOICE, MULTIPLE_RESPONSE, TRUE_FALSE, SHORT_ANSWER, ESSAY
+
+CONTOH SOAL (copy ke Word, hapus komentar, simpan sebagai .docx):
+
+[MULTIPLE_CHOICE] Hasil dari 7 × 8 adalah ...
+A. 54
+B. 56
+C. 58
+D. 64
+ANSWER: B
+POINTS: 1
+DIFFICULTY: EASY
+CATEGORY: Operasi Hitung
+EXPLANATION: 7 × 8 = 56
+
+[MULTIPLE_RESPONSE] Manakah yang merupakan bilangan prima?
+A. 2
+B. 4
+C. 3
+D. 9
+E. 5
+ANSWER: A,C,E
+POINTS: 2
+DIFFICULTY: MEDIUM
+CATEGORY: Bilangan
+EXPLANATION: 2, 3, 5 prima; 4 dan 9 komposit
+
+[TRUE_FALSE] Air mendidih pada suhu 100°C di permukaan laut.
+A. Benar
+B. Salah
+ANSWER: A
+POINTS: 1
+DIFFICULTY: EASY
+CATEGORY: Sains
+EXPLANATION: 100°C pada 1 atm
+
+[SHORT_ANSWER] Berapakah akar kuadrat dari 144?
+ANSWER: 12
+POINTS: 2
+DIFFICULTY: MEDIUM
+CATEGORY: Bilangan
+EXPLANATION: 12 × 12 = 144
+
+[ESSAY] Jelaskan dengan singkat apa yang dimaksud dengan bilangan prima dan berikan 5 contohnya.
+POINTS: 5
+DIFFICULTY: MEDIUM
+CATEGORY: Bilangan
+EXPLANATION: Bilangan prima adalah bilangan asli >1 yang hanya habis dibagi 1 dan dirinya sendiri. Contoh: 2, 3, 5, 7, 11
+
+---
+
+CATATAN:
+- Alias tipe yang diterima: PG=MULTIPLE_CHOICE, PGK=MULTIPLE_RESPONSE, BS=TRUE_FALSE, ISIAN=SHORT_ANSWER, ESAI=ESSAY
+- Untuk TRUE_FALSE, jika opsi A/B kosong akan otomatis diset "Benar"/"Salah"
+- correctAnswer untuk MULTIPLE_RESPONSE pisahkan dengan koma (cth: A,C,E)
+- Difficulty alias: MUDAH=EASY, SEDANG=MEDIUM, SULIT/HARD=HARD

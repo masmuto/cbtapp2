@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { BookCopy, Plus, FileText, Trash2, Edit, Eye, Code } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { BookCopy, Plus, FileText, Trash2, Edit, Eye, Code, Upload, FileSpreadsheet, FileText as FileTextIcon, Download, Loader2, CheckCircle2, AlertCircle, Info } from "lucide-react";
 import { toast } from "sonner";
 import { QUESTION_TYPE_LABEL } from "@/lib/helpers";
 import { useApp } from "@/stores/app-store";
@@ -31,6 +32,14 @@ export function QuestionBanksManager() {
     type: "MULTIPLE_CHOICE", stem: "", difficulty: "MEDIUM", category: "", points: 1, explanation: "",
     options: [{ code: "A", text: "", isCorrect: false }, { code: "B", text: "", isCorrect: false }, { code: "C", text: "", isCorrect: false }, { code: "D", text: "", isCorrect: false }],
   });
+
+  // === Import state ===
+  const [importOpen, setImportOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<any>(null);
+  const [dragActive, setDragActive] = useState(false);
+
   const { navigate } = useApp();
 
   const fetchBanks = () => {
@@ -102,6 +111,74 @@ export function QuestionBanksManager() {
 
   const isTrueFalse = qForm.type === "TRUE_FALSE";
 
+  // === Import handlers ===
+  const handleFileSelect = (file: File | null) => {
+    if (!file) return;
+    const name = file.name.toLowerCase();
+    const valid = name.endsWith(".xlsx") || name.endsWith(".xls") || name.endsWith(".csv") || name.endsWith(".docx");
+    if (!valid) {
+      toast.error("Format file tidak didukung. Gunakan .xlsx, .xls, .csv, atau .docx");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Ukuran file maksimal 5MB.");
+      return;
+    }
+    setImportFile(file);
+    setImportResult(null);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFileSelect(file);
+  };
+
+  const handleImport = async () => {
+    if (!importFile || !activeBank) return;
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const formData = new FormData();
+      formData.append("bankId", activeBank.id);
+      formData.append("file", importFile);
+      const res = await fetch("/api/questions/import", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setImportResult(data);
+        if (data.created > 0) {
+          toast.success(`${data.created} soal berhasil diimpor.`);
+          selectBank(activeBank); // refresh question list
+        } else {
+          toast.warning("Tidak ada soal yang berhasil diimpor. Periksa error di bawah.");
+        }
+      } else {
+        toast.error(data?.error || "Gagal mengimpor file.");
+      }
+    } catch (e) {
+      toast.error("Terjadi kesalahan jaringan.");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const downloadTemplate = (format: "xlsx" | "csv" | "docx") => {
+    // Trigger download dari /download/template-import-soal.{ext}
+    const url = `/download/template-import-soal.${format}`;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `template-import-soal.${format}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast.success(`Template ${format.toUpperCase()} diunduh.`);
+  };
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -160,13 +237,17 @@ export function QuestionBanksManager() {
               <EmptyState icon={BookCopy} title="Pilih Bank Soal" description="Pilih bank soal di kiri untuk melihat daftar soal." />
             ) : (
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <div>
                     <h3 className="font-semibold">{activeBank.name}</h3>
                     <p className="text-xs text-muted-foreground">{activeBank.subject?.name} · {questions.length} soal</p>
                   </div>
-                  <Dialog open={qOpen} onOpenChange={setQOpen}>
-                    <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-1" /> Soal Baru</Button></DialogTrigger>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={() => { setImportOpen(true); setImportResult(null); setImportFile(null); }}>
+                      <Upload className="w-4 h-4 mr-1" /> Import
+                    </Button>
+                    <Dialog open={qOpen} onOpenChange={setQOpen}>
+                      <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-1" /> Soal Baru</Button></DialogTrigger>
                     <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-thin">
                       <DialogHeader><DialogTitle>Buat Soal Baru</DialogTitle></DialogHeader>
                       <form onSubmit={createQuestion} className="space-y-3">
@@ -241,6 +322,7 @@ export function QuestionBanksManager() {
                       </form>
                     </DialogContent>
                   </Dialog>
+                  </div>
                 </div>
 
                 {questions.length === 0 ? (
@@ -304,6 +386,141 @@ export function QuestionBanksManager() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Dialog */}
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-thin">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Upload className="w-5 h-5 text-primary" /> Import Soal dari Excel/Word</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Info & Template */}
+            <Alert>
+              <Info className="w-4 h-4" />
+              <AlertTitle>Format yang Didukung</AlertTitle>
+              <AlertDescription className="text-xs space-y-1">
+                <p><strong>.xlsx / .xls / .csv</strong>: Setiap baris = 1 soal, dengan kolom: <code>type, stem, points, difficulty, category, optionA-E, correctAnswer, explanation</code></p>
+                <p><strong>.docx</strong>: Setiap soal dipisah baris kosong, format blok dengan marker [TYPE], A./B./C./D., ANSWER:, POINTS:, dll.</p>
+                <p>Maksimal 5MB. Unduh template contoh di bawah.</p>
+              </AlertDescription>
+            </Alert>
+
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => downloadTemplate("xlsx")}>
+                <FileSpreadsheet className="w-4 h-4 mr-1" /> Template Excel
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => downloadTemplate("csv")}>
+                <FileTextIcon className="w-4 h-4 mr-1" /> Template CSV
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => downloadTemplate("docx")}>
+                <FileTextIcon className="w-4 h-4 mr-1" /> Template Word
+              </Button>
+            </div>
+
+            {/* Drop zone */}
+            {!importResult && (
+              <div
+                onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+                onDragLeave={() => setDragActive(false)}
+                onDrop={handleDrop}
+                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                  dragActive ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                }`}
+              >
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv,.docx"
+                  onChange={(e) => handleFileSelect(e.target.files?.[0] || null)}
+                  className="hidden"
+                  id="file-input"
+                />
+                <label htmlFor="file-input" className="cursor-pointer inline-flex flex-col items-center gap-2">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Upload className="w-6 h-6 text-primary" />
+                  </div>
+                  <span className="text-sm font-medium">Klik untuk pilih file atau drag & drop</span>
+                  <span className="text-xs text-muted-foreground">.xlsx, .xls, .csv, .docx (max 5MB)</span>
+                </label>
+                {importFile && (
+                  <div className="mt-3 flex items-center justify-center gap-2 text-sm">
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                    <span className="font-medium">{importFile.name}</span>
+                    <span className="text-muted-foreground">({(importFile.size / 1024).toFixed(1)} KB)</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Result */}
+            {importResult && (
+              <div className="space-y-3">
+                <Alert variant={importResult.created > 0 ? "default" : "destructive"}>
+                  {importResult.created > 0 ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <AlertCircle className="w-4 h-4" />}
+                  <AlertTitle>Hasil Import</AlertTitle>
+                  <AlertDescription className="text-sm">
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      <div className="text-center p-2 bg-emerald-50 rounded">
+                        <p className="text-2xl font-bold text-emerald-700">{importResult.created}</p>
+                        <p className="text-xs text-muted-foreground">Berhasil</p>
+                      </div>
+                      <div className="text-center p-2 bg-amber-50 rounded">
+                        <p className="text-2xl font-bold text-amber-700">{importResult.skipped}</p>
+                        <p className="text-xs text-muted-foreground">Gagal/Dilewati</p>
+                      </div>
+                      <div className="text-center p-2 bg-muted rounded">
+                        <p className="text-2xl font-bold">{importResult.total}</p>
+                        <p className="text-xs text-muted-foreground">Total Baris</p>
+                      </div>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+
+                {importResult.errors?.length > 0 && (
+                  <div className="border rounded-md max-h-60 overflow-y-auto scrollbar-thin">
+                    <div className="sticky top-0 bg-amber-50 px-3 py-2 border-b text-xs font-semibold text-amber-700">
+                      Detail Error ({importResult.errors.length} baris gagal)
+                    </div>
+                    <div className="divide-y">
+                      {importResult.errors.map((e: any, i: number) => (
+                        <div key={i} className="px-3 py-2 text-xs">
+                          <div className="flex items-start gap-2">
+                            <Badge variant="outline" className="text-amber-700 shrink-0">Baris {e.row}</Badge>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-muted-foreground truncate">{e.stem || "(stem kosong)"}</p>
+                              <ul className="list-disc list-inside text-red-600 mt-0.5">
+                                {e.errors.map((err: string, j: number) => <li key={j}>{err}</li>)}
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            {importResult ? (
+              <>
+                <Button variant="outline" onClick={() => { setImportResult(null); setImportFile(null); }}>
+                  Import Lagi
+                </Button>
+                <Button onClick={() => setImportOpen(false)}>Selesai</Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setImportOpen(false)}>Batal</Button>
+                <Button onClick={handleImport} disabled={!importFile || importing}>
+                  {importing ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Mengimpor...</> : <><Upload className="w-4 h-4 mr-1" /> Import Sekarang</>}
+                </Button>
+              </>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

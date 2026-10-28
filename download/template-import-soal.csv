@@ -1,6 +1,7 @@
-type,stem,points,difficulty,category,optionA,optionB,optionC,optionD,correctAnswer
-MULTIPLE_CHOICE,Hasil dari 7 × 8 adalah ...? ,1,EASY,Operasi Hitung,54,56,58,64,B
-MULTIPLE_CHOICE,Ibu kota Indonesia adalah ...? ,1,EASY,Geografi,Bandung,Jakarta,Surabaya,Medan,B
-MULTIPLE_CHOICE,Berapakah hasil dari 144 / 12?,1,EASY,Operasi Hitung,10,11,12,13,C
-TRUE_FALSE,Air terdiri dari Hidrogen dan Oksigen.,1,EASY,Sains,Benar,Salah,,A
-SHORT_ANSWER,Berapakah akar kuadrat dari 81?,2,MEDIUM,Bilangan,,,,9
+"type","stem","points","difficulty","category","optionA","optionB","optionC","optionD","optionE","correctAnswer","explanation"
+"MULTIPLE_CHOICE","Hasil dari 7 × 8 adalah ...","1","EASY","Operasi Hitung","54","56","58","64","","B","7 × 8 = 56"
+"MULTIPLE_CHOICE","Ibu kota Indonesia adalah ...","1","EASY","Geografi","Bandung","Jakarta","Surabaya","Medan","","B","Jakarta adalah ibu kota RI"
+"MULTIPLE_RESPONSE","Manakah dari berikut yang merupakan bilangan prima?","2","MEDIUM","Bilangan","2","4","3","9","5","A,C,E","2, 3, 5 prima; 4 dan 9 komposit"
+"TRUE_FALSE","Air mendidih pada suhu 100°C di permukaan laut.","1","EASY","Sains","Benar","Salah","","","","A","Benar, 100°C pada 1 atm"
+"SHORT_ANSWER","Berapakah akar kuadrat dari 144?","2","MEDIUM","Bilangan","","","","","","12","12 × 12 = 144"
+"ESSAY","Jelaskan dengan singkat apa yang dimaksud dengan bilangan prima dan berikan 5 contohnya.","5","MEDIUM","Bilangan","","","","","","","Bilangan prima adalah bilangan asli >1 yang hanya habis dibagi 1 dan dirinya sendiri. Contoh: 2, 3, 5, 7, 11"
