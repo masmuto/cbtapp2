@@ -42,6 +42,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { view: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { view: "question-banks", label: "Bank Soal", icon: BookCopy },
     { view: "exams", label: "Ujian", icon: FileText },
+    { view: "monitoring", label: "Monitoring", icon: Eye },
     { view: "grading", label: "Koreksi", icon: ClipboardList },
     { view: "results", label: "Hasil & Nilai", icon: Award },
   ],

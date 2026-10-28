@@ -2,17 +2,22 @@ import { db } from "@/lib/db";
 import { getSessionContext, requireRole } from "@/lib/rbac";
 import { ok, err, handleAuthError } from "@/lib/api";
 
-// GET: daftar attempt untuk monitoring pengawas.
-// Pengawas hanya melihat attempt dari ujian yang ditugaskan kepadanya.
+// GET: daftar attempt untuk monitoring pengawas ATAU guru (pemilik ujian).
+// - Pengawas: hanya attempt dari ujian yang ditugaskan kepadanya
+// - Guru: attempt dari ujian miliknya sendiri
+// - Admin sekolah: semua attempt di sekolahnya
 export async function GET(req: Request) {
   try {
-    const ctx = await requireRole("proctor", "school_admin");
+    const ctx = await requireRole("proctor", "school_admin", "teacher");
     const { searchParams } = new URL(req.url);
     const examId = searchParams.get("examId");
 
-    // Ambil assignment pengawas
+    // Ambil assignment sesuai peran
     const where: any = { exam: { schoolId: ctx.schoolId } };
     if (ctx.role === "proctor") where.proctorId = ctx.userId;
+    // Guru: filter ujian miliknya (via assignments join exam.ownerId)
+    // Kita juga ambil assignments untuk semua ujian milik guru tersebut
+    if (ctx.role === "teacher") where.exam.ownerId = ctx.userId;
     if (examId) where.examId = examId;
 
     const assignments = await db.examAssignment.findMany({
@@ -21,7 +26,7 @@ export async function GET(req: Request) {
         exam: {
           select: {
             id: true, title: true, durationMinutes: true,
-            startAt: true, endAt: true, passingScore: true,
+            startAt: true, endAt: true, passingScore: true, ownerId: true,
           },
         },
         class: { select: { id: true, name: true } },

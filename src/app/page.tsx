@@ -25,6 +25,7 @@ import { ExamBuilder } from "@/components/cbt/teacher/exam-builder";
 import { ExamRunner } from "@/components/cbt/student/exam-runner";
 import { GradingView } from "@/components/cbt/teacher/grading-view";
 import { ResultsView } from "@/components/cbt/teacher/results-view";
+import { TeacherMonitoring } from "@/components/cbt/teacher/teacher-monitoring";
 import { StudentResults } from "@/components/cbt/student/student-results";
 import { ProctorMonitoring } from "@/components/cbt/proctor/proctor-monitoring";
 import { AuditLogViewer } from "@/components/cbt/admin/audit-log-viewer";
@@ -102,7 +103,8 @@ export default function Home() {
       if (user.activeRole === "student") content = <StudentResults />;
       else content = <ResultsView />;
     } else if (view === "monitoring") {
-      if (user.activeRole === "school_admin" || user.isSuperadmin) content = <AdminMonitoring />;
+      if (user.isSuperadmin || user.activeRole === "school_admin") content = <AdminMonitoring />;
+      else if (user.activeRole === "teacher") content = <TeacherMonitoring />;
       else content = <ProctorMonitoring />;
     } else if (view === "audit") content = <AuditLogViewer />;
     else content = (

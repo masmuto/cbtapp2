@@ -103,3 +103,68 @@ Stage Summary:
 - Template downloadable untuk semua format.
 - Audit log mencatat setiap operasi import.
 - File baru: `src/app/api/questions/import/route.ts`, `scripts/generate-templates.ts`, `scripts/generate-docx-template.ts`, `download/template-import-soal.{xlsx,csv,docx}`.
+
+---
+Task ID: 15 (live monitoring guru)
+Agent: main (Z.ai assistant)
+Task: Tambah dashboard monitoring real-time khusus untuk guru
+
+Work Log:
+- Update `/api/proctoring` route: tambah "teacher" ke `requireRole()` whitelist. Guru melihat attempt dari ujian miliknya sendiri (filter via `where.exam.ownerId = ctx.userId`).
+- Buat endpoint baru `GET /api/teacher/monitoring` — ringkasan real-time semua attempt pada ujian milik guru. Per attempt mengembalikan:
+  - isOnline (heartbeat < 60 detik terakhir)
+  - lastActivityAt, lastSyncAt
+  - remainingSec, elapsedSec, durationSec
+  - progressPct, answeredCount, totalQuestions
+  - incidentCount, totalEvents, recentEvents (10 terakhir)
+  - Status siswa, kelas, email
+  - **Privacy**: tidak mengembalikan jawaban atau kunci jawaban
+  - Statistik agregat: total, active, online, submitted, graded, incidents, withIncidents, avgProgress
+- Buat endpoint detail `GET /api/teacher/monitoring/[attemptId]`:
+  - Timeline event lengkap (200 terakhir, bukan hanya 5)
+  - Daftar jawaban dengan metadata (questionId, type, category, difficulty, isSynced, revision, isGraded, isCorrect, pointsAwarded, teacherComment, updatedAt, gradedAt)
+  - Konfigurasi anti-cheat ujian
+  - Info siswa & ujian lengkap
+  - **TIDAK mengembalikan**: selectedOptionCodes, textAnswer (privacy jawaban siswa)
+- Buat komponen `TeacherMonitoring`:
+  - 4 stat cards: Total Sesi, Sedang Aktif (+online count), Rata-rata Progress %, Insiden (+siswa dengan insiden)
+  - Filter: search siswa, filter ujian, filter status
+  - Grid kartu siswa (responsive 1/2/3 kolom), tiap kartu:
+    * Avatar dengan indikator online (titik hijau pulse jika online, kuning jika offline)
+    * Nama, kelas, status badge, badge insiden
+    * Progress bar (answered/total %)
+    * Sisa waktu (merah pulse jika <1mnt, kuning jika <5mnt)
+    * Sync status (online/offline + last sync)
+    * 2 aktivitas terakhir (icon berbeda per severity)
+  - Tombol Live/Paused untuk toggle auto-refresh
+  - Auto-refresh setiap 4 detik
+  - Update timestamp "Update terakhir: HH.MM.SS"
+- Buat komponen `TeacherLiveDetail`:
+  - Auto-refresh setiap 3 detik (lebih cepat dari list view)
+  - Live status bar (Online/Offline dengan ikon Radio pulse)
+  - 4 metric cards: Status (+finalScore), Progress %, Sisa Waktu, Insiden
+  - Timeline aktivitas lengkap (scrollable, 100 event terakhir, color-coded per severity)
+  - Daftar jawaban per soal (metadata only — benar/salah, revisi, sync time)
+  - Catatan privacy: "Isi jawaban & kunci jawaban tidak diekspos"
+  - Sidebar: Info Siswa (avatar, email, kelas, percobaan, mulai/submit), Info Ujian (durasi, KKM, total soal, konfigurasi anti-cheat), Ringkasan Event (count per type)
+- Update sidebar nav guru: tambah "Monitoring" (ikon Eye) antara Ujian dan Koreksi.
+- Update `page.tsx`: routing view "monitoring" untuk guru → `<TeacherMonitoring />`.
+- Verifikasi end-to-end via API + browser:
+  - Login guru → /api/teacher/monitoring mengembalikan stats + attempts dengan data real-time ✓
+  - Siswa mulai ujian → guru langsung melihat attempt aktif, online=True, progress=0% ✓
+  - Siswa menjawab 1 soal → progress naik ke 20% dalam dashboard guru (auto-refresh 4s) ✓
+  - Siswa trigger TAB_SWITCH → incidentCount naik, event muncul di timeline ✓
+  - Siswa menjawab soal ke-2 → progress naik ke 40%, insiden naik ke 2 ✓
+  - Siswa heartbeat → status online=True ✓
+  - Detail view: timeline lengkap, jawaban metadata, info ujian, ringkasan event ✓
+  - Privacy terjaga: jawaban siswa & kunci jawaban TIDAK diekspos di API ✓
+- Screenshots:
+  - `download/teacher-live-monitoring.png` — dashboard grid siswa
+  - `download/teacher-live-detail.png` — detail per siswa
+
+Stage Summary:
+- Guru sekarang punya dashboard monitoring real-time lengkap.
+- Auto-refresh 4s di list view, 3s di detail view.
+- Data live: status online, progress %, sisa waktu, sync status, insiden, timeline event.
+- Privacy by design: tidak membocorkan jawaban siswa atau kunci jawaban.
+- File baru: `src/app/api/teacher/monitoring/route.ts`, `src/app/api/teacher/monitoring/[attemptId]/route.ts`, `src/components/cbt/teacher/teacher-monitoring.tsx`, `src/components/cbt/teacher/teacher-live-detail.tsx`.
