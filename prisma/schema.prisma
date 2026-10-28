@@ -1,12 +1,24 @@
-// CBT Sekolah — Prisma Schema (multi-tenant, SQLite adapter)
-// Catatan: SQLite tidak mendukung enum asli → kami pakai String + validasi di lapisan aplikasi.
-// Semua entitas milik sekolah membawa kolom `schoolId` untuk isolasi multi-sekolah.
+// CBT Sekolah — Prisma Schema (multi-tenant)
+// ----------------------------------------------------------------------------
+// DATABASE PROVIDER:
+//   - Untuk development lokal (SQLite): default. DATABASE_URL=file:./db/dev.db
+//   - Untuk Vercel + Supabase (PostgreSQL): ubah provider ke "postgresql"
+//     dan set DATABASE_URL ke Supabase connection string.
+//
+// Catatan: SQLite tidak mendukung enum asli → kami pakai String + validasi
+// di lapisan aplikasi. Semua entitas milik sekolah membawa kolom `schoolId`
+// untuk isolasi multi-sekolah.
+// ----------------------------------------------------------------------------
 
 generator client {
   provider = "prisma-client-js"
+  // Untuk Vercel, pastikan binary tidak perlu rebuild per platform:
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
+  // Default: sqlite untuk dev lokal cepat.
+  // Untuk produksi (Vercel + Supabase), ganti ke "postgresql".
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }

@@ -1,8 +1,10 @@
 # CBT Sekolah
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FYOUR_USERNAME%2Fcbt-sekolah&env=DATABASE_URL,NEXTAUTH_SECRET,NEXTAUTH_URL&envDescription=Database%20URL%20(Supabase%20PostgreSQL)%20%2C%20NextAuth%20secret%20%26%20URL&project-name=cbt-sekolah&repository-name=cbt-sekolah)
+
 Platform **Computer Based Test** online untuk semua jenjang pendidikan Indonesia: SD/MI, SMP/MTs, SMA/MA, SMK, dan pesantren. Aman, multi-sekolah, dan responsif — dilengkapi anti-menyontek berlapis, autosave, dan penilaian otomatis.
 
-> **Catatan stack**: Aplikasi ini diadaptasi dari spesifikasi awal berbasis Supabase ke lingkungan Next.js + Prisma + SQLite. Pola arsitektur tetap sama: multi-tenant via `schoolId`, RBAC di lapisan aplikasi, audit log, validasi server, dan isolasi data. Migrasi ke PostgreSQL/MySQL atau Supabase dapat dilakukan dengan mengubah `datasource` di `prisma/schema.prisma`.
+> **Stack**: Next.js 16 + TypeScript + Prisma + Tailwind CSS + shadcn/ui. Mendukung **SQLite** (dev lokal cepat) atau **PostgreSQL/Supabase** (produksi). Lihat [DEPLOYMENT.md](./DEPLOYMENT.md) untuk panduan deploy ke Vercel + Supabase.
 
 ---
 

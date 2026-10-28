@@ -168,3 +168,52 @@ Stage Summary:
 - Data live: status online, progress %, sisa waktu, sync status, insiden, timeline event.
 - Privacy by design: tidak membocorkan jawaban siswa atau kunci jawaban.
 - File baru: `src/app/api/teacher/monitoring/route.ts`, `src/app/api/teacher/monitoring/[attemptId]/route.ts`, `src/components/cbt/teacher/teacher-monitoring.tsx`, `src/components/cbt/teacher/teacher-live-detail.tsx`.
+
+---
+Task ID: 16 (deployment prep)
+Agent: main (Z.ai assistant)
+Task: Siapkan proyek untuk upload ke GitHub + deploy Vercel + Supabase
+
+Work Log:
+- Update `.gitignore` komprehensif: ignore `.env`, `db/`, `dev.log`, `server.log`, `.next/`, `node_modules/`, `.zscripts/`, `skills/`, `examples/`, `tests/python-runtime-*.sh`. Pastikan `.env.example` TIDAK di-ignore (sebagai template).
+- Update `prisma/schema.prisma`:
+  - Tambah komentar penjelasan provider SQLite (dev) vs PostgreSQL (Supabase).
+  - Tambah `binaryTargets = ["native", "debian-openssl-3.0.x"]` agar Prisma client compatible dengan Vercel serverless (Debian-based).
+- Update `package.json`:
+  - Rename dari "nextjs_tailwind_shadcn_ts" ke "cbt-sekolah".
+  - Version 1.0.0.
+  - `build`: `prisma generate && next build` (Vercel akan auto-jalankan ini).
+  - `postinstall`: `prisma generate` (jaga-jaga jika Vercel tidak menjalankan build script).
+  - `start`: `next start` (standard Next.js production start).
+  - Tambah `db:migrate:deploy` dan `db:seed:pg` untuk Supabase.
+  - Hapus `tee dev.log` dari `dev` script (tidak perlu di repo bersih).
+- Update `.env.example` dengan panduan Supabase lengkap: contoh connection string Supabase pooler, cara ganti provider di schema.prisma, catatan keamanan Vercel.
+- Buat `vercel.json` minimal: framework=nextjs, buildCommand="prisma generate && next build", installCommand="bun install".
+- Update `next.config.ts`: tambah komentar penjelasan Vercel compatibility, disable telemetry.
+- Buat `scripts/setup-supabase.sh`: script otomatis untuk setup Supabase PostgreSQL dari SQLite (ganti provider di schema, generate client, push schema, seed).
+- Buat `DEPLOYMENT.md`: panduan lengkap 6 langkah:
+  1. Persiapan repository lokal (cek .gitignore, hapus sandbox files)
+  2. Setup Supabase database (create project, dapat connection string, ganti provider, push schema)
+  3. Push ke GitHub (create repo, push, verify no secrets committed)
+  4. Deploy ke Vercel (import project, set env vars, deploy, set NEXTAUTH_URL)
+  5. Verifikasi deployment (test login, API, Supabase dashboard, alur lengkap)
+  6. Setup auto-deploy dari GitHub (branch strategy, PR workflow)
+  + Troubleshooting section (common errors & solutions)
+  + Maintenance section (backup, update deps, rotate secrets)
+  + Cost estimate (Vercel free + Supabase free = ~1000 siswa)
+- Update `README.md`:
+  - Tambah tombol "Deploy with Vercel" (one-click deploy button).
+  - Update catatan stack: sekarang explicitly menyebut dukungan SQLite (dev) + PostgreSQL/Supabase (produksi).
+- Verifikasi:
+  - `bun run lint`: 0 errors ✓
+  - `npx prisma generate`: berhasil ✓
+  - Dev server masih jalan (HTTP 200) ✓
+  - `git add --dry-run`: hanya 10 file di root + src/ + public/ (semua aman) ✓
+  - File sensitif di-ignore: `.env`, `db/custom.db`, `dev.log`, `node_modules/`, `.next/`, `skills/`, `.zscripts/` ✓
+
+Stage Summary:
+- Proyek siap di-upload ke GitHub dan deploy ke Vercel + Supabase.
+- File deployment: `.gitignore`, `.env.example`, `vercel.json`, `DEPLOYMENT.md`, `scripts/setup-supabase.sh`.
+- Schema Prisma tetap SQLite untuk dev cepat; script setup-supabase.sh akan otomatis ganti ke PostgreSQL.
+- binaryTargets sudah include debian untuk Vercel serverless.
+- Tidak ada rahasia ter-commit (verifikasi via git add --dry-run).
